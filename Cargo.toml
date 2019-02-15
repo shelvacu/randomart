@@ -1,0 +1,12 @@
+[package]
+name = "rust-randomart"
+version = "0.1.0"
+authors = ["Shelvacu <shelvacu@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+num = "*"
+rand = "*"
+lodepng = "2.4"
+rgb = "0.8"
+palette = "0.4"
