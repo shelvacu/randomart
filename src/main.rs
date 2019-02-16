@@ -23,17 +23,15 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern crate palette;
-extern crate num;
-extern crate rand;
+extern crate lodepng;
 
-use num::traits::FloatConst;
-use rand::Rng;
+//use rand::Rng;
 use palette::Color;
 use palette::rgb::Rgb;
 use palette::encoding::Srgb as SrgbEncoding;
 use palette::encoding::Linear;
 
-type F = f32;
+type F = f64;
 type FColor = Color<SrgbEncoding, F>;
 type FLinRgb = Rgb<Linear<SrgbEncoding>,F>;
 type FSrgbRgb = Rgb<SrgbEncoding,F>;
@@ -111,83 +109,36 @@ fn get_red(a: FColor) -> F {
     a_rgb.red
 }
 
-fn generate<R: Rng + ?Sized>(rng:&mut R, layers:u8) -> String {
-    if layers == 0 {
-        match rng.gen_range(0, 3) {
-            0 => format!(
-                "FColor::linear_rgb({0},{0},{0})",
-                "x"
-            ),
-            1 => format!(
-                "FColor::linear_rgb({0},{0},{0})",
-                "y"
-            ),
-            2 => format!(
-                "FColor::linear_rgb({},{},{})",
-                rng.gen::<f32>(),
-                rng.gen::<f32>(),
-                rng.gen::<f32>(),
-            ),
-            _ => panic!("This shouldn't happen"),
-        }
-    } else {
-        match rng.gen_range(0, 7) {
-            0 => format!( // "Sum" (not really a sum)
-                "palette::Mix::mix(&{},&{},0.5)",
-                generate(rng, layers - 1),
-                generate(rng, layers - 1),
-            ),
-            1 => format!( // "Product"
-                "map_combine({},{},|a,b| a*b)",
-                generate(rng, layers - 1),
-                generate(rng, layers - 1),
-            ),
-            // "Mod" seems dumb (always zero?) so I'm skipping it
-            2 => format!( // "Well"
-                "map_over({}, well)",
-                generate(rng, layers - 1),
-            ),
-            3 => format!( // "Tent"
-                "map_over({}, tent)",
-                generate(rng, layers - 1),
-            ),
-            4 => format!( // "Sin"
-                "map_over({}, |c| ({} + {} * c).sin())",
-                generate(rng, layers - 1),
-                rng.gen_range(F::from(0u8), F::PI()), // phase (supposedly)
-                rng.gen_range(F::from(1u8), F::from(6u8)), // frequency (allegedly)
-            ),
-            5 => format!( // "Level"
-                "map_combine3({}, {}, {}, |level, e1, e2| if level < {} {{ e1 }} else {{ e2 }})",
-                generate(rng, layers - 1),
-                generate(rng, layers - 1),
-                generate(rng, layers - 1),
-                rng.gen_range(F::from(0u8), F::from(1u8)),
-            ),
-            6 => format!( // "Mix" mix but with dynamic weight
-                "palette::Mix::mix(&{},&{},get_red({}))",
-                generate(rng, layers - 1),
-                generate(rng, layers - 1),
-                generate(rng, layers - 1),
-            ),
-            _ => panic!("This shouldn't happen"),
-        }
+mod the_func;
+//fn the_func(x: F, y: F) -> FColor { map_combine3(map_over(map_over(map_over(FColor::linear_rgb(0.6675707,0.25308847,0.56201494), well), well), well), map_over(map_over(palette::Mix::mix(&FColor::linear_rgb(0.043018043,0.9635114,0.19234258),&FColor::linear_rgb(0.29156852,0.711145,0.13020879),get_red(FColor::linear_rgb(y,y,y))), well), well), map_combine3(map_combine3(map_over(FColor::linear_rgb(x,x,x), well), map_over(FColor::linear_rgb(x,x,x), tent), map_combine3(FColor::linear_rgb(x,x,x), FColor::linear_rgb(x,x,x), FColor::linear_rgb(y,y,y), |level, e1, e2| if level < 0.41037297 { e1 } else { e2 }), |level, e1, e2| if level < 0.41948104 { e1 } else { e2 }), map_combine(map_over(FColor::linear_rgb(y,y,y), well),map_combine(FColor::linear_rgb(0.6310579,0.7069581,0.1531983),FColor::linear_rgb(0.88433623,0.88487315,0.9737127),|a,b| a*b),|a,b| a*b), map_combine(palette::Mix::mix(&FColor::linear_rgb(y,y,y),&FColor::linear_rgb(x,x,x),0.5),map_over(FColor::linear_rgb(x,x,x), well),|a,b| a*b), |level, e1, e2| if level < 0.27216887 { e1 } else { e2 }), |level, e1, e2| if level < 0.8572339 { e1 } else { e2 }) }
+
+fn make_array<T:Default>(size:usize) -> Vec<T> {
+    let mut res = Vec::<T>::with_capacity(size);
+    for _ in 0..size {
+        res.push(Default::default());
     }
+    return res;
 }
 
-
-fn the_func(x: F, y: F) -> FColor { map_combine3(map_over(map_over(map_over(FColor::linear_rgb(0.6675707,0.25308847,0.56201494), well), well), well), map_over(map_over(palette::Mix::mix(&FColor::linear_rgb(0.043018043,0.9635114,0.19234258),&FColor::linear_rgb(0.29156852,0.711145,0.13020879),get_red(FColor::linear_rgb(y,y,y))), well), well), map_combine3(map_combine3(map_over(FColor::linear_rgb(x,x,x), well), map_over(FColor::linear_rgb(x,x,x), tent), map_combine3(FColor::linear_rgb(x,x,x), FColor::linear_rgb(x,x,x), FColor::linear_rgb(y,y,y), |level, e1, e2| if level < 0.41037297 { e1 } else { e2 }), |level, e1, e2| if level < 0.41948104 { e1 } else { e2 }), map_combine(map_over(FColor::linear_rgb(y,y,y), well),map_combine(FColor::linear_rgb(0.6310579,0.7069581,0.1531983),FColor::linear_rgb(0.88433623,0.88487315,0.9737127),|a,b| a*b),|a,b| a*b), map_combine(palette::Mix::mix(&FColor::linear_rgb(y,y,y),&FColor::linear_rgb(x,x,x),0.5),map_over(FColor::linear_rgb(x,x,x), well),|a,b| a*b), |level, e1, e2| if level < 0.27216887 { e1 } else { e2 }), |level, e1, e2| if level < 0.8572339 { e1 } else { e2 }) }
-
-
 fn main() {
-    //arity0 = vec![];
-    let mut rng = rand::thread_rng();
-
-    for x in 0..10000 {
-        for y in 0..10000 {
-            let res = the_func(x as F, y as F);
+    let width = 1000usize;
+    let height = 1000usize;
+    let byte_depth = 3usize;
+    let mut buf = make_array::<u8>(width*height*byte_depth);
+    
+    for x in 0..width {
+        for y in 0..height {
+            let zt1x = ( (x as F) / (width  as F) ) + ( 1.0 / (2.0*(width  as F)) );
+            let zt1y = ( (y as F) / (height as F) ) + ( 1.0 / (2.0*(height as F)) );
+            //println!("{},{}",zt1x,zt1y);
+            let res = the_func::the_func(zt1x, zt1y);
+            let components_tpl = FSrgbRgb::from(res).into_format::<u8>().into_components();
+            let components_slice = vec![components_tpl.0,components_tpl.1,components_tpl.2];
+            let start_idx = 3*x + 3*width*y;
+            buf[start_idx..start_idx+3].copy_from_slice(&components_slice);
         }
     }
+    lodepng::encode24_file("out.png", &buf, width, height).unwrap();
     //println!("{}", generate(&mut rng, 4));
     //let a = FColor::linear_rgb(1.0f32,0.0f32,1.0f32);
     //let b = FColor::linear_rgb(0.0f32,1.0f32,0.0f32);
@@ -207,7 +158,7 @@ fn tent(x:F) -> F {
     F::from(1u8) - F::from(2u8) * x.abs()
 }
 
-///dont use. Just use palette::Mix::mix
+/*///dont use. Just use palette::Mix::mix
 fn average_rgb_weighted(a:FColor, b:FColor, weight:F) -> FColor {
     let w = num::clamp(weight, 0.0, 1.0);
     let iw = 1.0 - w;
@@ -226,3 +177,4 @@ fn average_rgb_weighted(a:FColor, b:FColor, weight:F) -> FColor {
 fn average_rgb(a:FColor, b:FColor) -> FColor {
     return average_rgb_weighted(a,b,0.5)
 }
+*/

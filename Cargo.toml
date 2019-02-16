@@ -5,8 +5,12 @@ authors = ["Shelvacu <shelvacu@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-num = "*"
-rand = "*"
-lodepng = "2.4"
 rgb = "0.8"
 palette = "0.4"
+lodepng = "^2.4"
+
+[build-dependencies]
+num = "*"
+rand = "*"
+rand_chacha = "*"
+sha2 = "*"
