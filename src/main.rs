@@ -1,4 +1,5 @@
 // Copyright (c) 2019, Shelvacu
+// Based on "randomart.py" which is Copyright (c) 2010, Andrej Bauer, http://andrej.com/
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,7 +26,6 @@
 extern crate palette;
 extern crate lodepng;
 
-//use rand::Rng;
 use palette::Color;
 use palette::rgb::Rgb;
 use palette::encoding::Srgb as SrgbEncoding;
@@ -35,44 +35,6 @@ type F = f64;
 type FColor = Color<SrgbEncoding, F>;
 type FLinRgb = Rgb<Linear<SrgbEncoding>,F>;
 type FSrgbRgb = Rgb<SrgbEncoding,F>;
-//type U8SrgbRgb = Rgb<SrgbEncoding,u8>;
-
-//let color: Color = Srgb::new(0.8, 0.2, 0.1).into_linear().into();
-//let lighter = color.lighten(0.1);
-//let desaturated = color.desaturate(0.5);
-//https://crates.io/crates/palette
-
-/*
-trait A
-
-trait Arity0 {
-    fn make_func(&self) -> Box<Fn(F,F) -> FColor>;
-}
-trait Arity1 {
-    fn make_func(&self) -> Box<Fn(F,F,FColor) -> FColor>;
-}
-trait Arity2 {
-    fn make_func(&self) -> Box<Fn(F,F,FColor,FColor) -> FColor>;
-}
-trait Arity3 {
-    fn make_func(&self) -> Box<Fn(F,F,FColor,FColor,FColor) -> FColor>;
-}
-
-struct VariableX();
-impl Arity0 for VariableX {
-    fn make_func(&self) -> Box<Fn(F,F) -> FColor> {
-        Box::new(|x,y| FColor::linear_rgb(x,x,x))
-    }
-}
-
-struct VariableY();
-impl Arity0 for VariableY {
-    fn make_func(&self) -> Box<Fn(F,F) -> FColor> {
-        Box::new(|x,y| FColor::linear_rgb(y,y,y))
-    }
-}
-*/
-//struct Constant
 
 fn map_over<Fc: Fn(F) -> F>(a: FColor, func: Fc) -> FColor {
     let a_rgb:FLinRgb = a.into();
@@ -104,13 +66,30 @@ fn map_combine3<Fc: Fn(F, F, F) -> F>(a: FColor, b: FColor, c: FColor, func: Fc)
     )
 }
 
+fn map_combine_n<Fc: Fn(&mut [F]) -> F>(colors: &[FColor], func: Fc) -> FColor {
+    type FVec = Vec<F>;
+    let mut reds = FVec::new();
+    let mut greens = FVec::new();
+    let mut blues = FVec::new();
+    for color in colors {
+        let color_rgb:FLinRgb = color.clone().into();
+        reds.push(color_rgb.red);
+        greens.push(color_rgb.green);
+        blues.push(color_rgb.blue);
+    }
+    FColor::linear_rgb(
+        func(&mut reds),
+        func(&mut greens),
+        func(&mut blues),
+    )
+}
+
 fn get_red(a: FColor) -> F {
     let a_rgb:FLinRgb = a.into();
     a_rgb.red
 }
 
 mod the_func;
-//fn the_func(x: F, y: F) -> FColor { map_combine3(map_over(map_over(map_over(FColor::linear_rgb(0.6675707,0.25308847,0.56201494), well), well), well), map_over(map_over(palette::Mix::mix(&FColor::linear_rgb(0.043018043,0.9635114,0.19234258),&FColor::linear_rgb(0.29156852,0.711145,0.13020879),get_red(FColor::linear_rgb(y,y,y))), well), well), map_combine3(map_combine3(map_over(FColor::linear_rgb(x,x,x), well), map_over(FColor::linear_rgb(x,x,x), tent), map_combine3(FColor::linear_rgb(x,x,x), FColor::linear_rgb(x,x,x), FColor::linear_rgb(y,y,y), |level, e1, e2| if level < 0.41037297 { e1 } else { e2 }), |level, e1, e2| if level < 0.41948104 { e1 } else { e2 }), map_combine(map_over(FColor::linear_rgb(y,y,y), well),map_combine(FColor::linear_rgb(0.6310579,0.7069581,0.1531983),FColor::linear_rgb(0.88433623,0.88487315,0.9737127),|a,b| a*b),|a,b| a*b), map_combine(palette::Mix::mix(&FColor::linear_rgb(y,y,y),&FColor::linear_rgb(x,x,x),0.5),map_over(FColor::linear_rgb(x,x,x), well),|a,b| a*b), |level, e1, e2| if level < 0.27216887 { e1 } else { e2 }), |level, e1, e2| if level < 0.8572339 { e1 } else { e2 }) }
 
 fn make_array<T:Default>(size:usize) -> Vec<T> {
     let mut res = Vec::<T>::with_capacity(size);
@@ -120,23 +99,40 @@ fn make_array<T:Default>(size:usize) -> Vec<T> {
     return res;
 }
 
+const ANTIALIAS:usize = 16;
+
 fn main() {
     let width = 1000usize;
     let height = 1000usize;
     let byte_depth = 3usize;
     let mut buf = make_array::<u8>(width*height*byte_depth);
+
+    //let antialias = 2;
+    let mut results = [FColor::default(); ANTIALIAS*ANTIALIAS];
     
     for x in 0..width {
         for y in 0..height {
-            let zt1x = ( (x as F) / (width  as F) ) + ( 1.0 / (2.0*(width  as F)) );
-            let zt1y = ( (y as F) / (height as F) ) + ( 1.0 / (2.0*(height as F)) );
+            let pixelwidth  = 1.0 / (width  as F);
+            let pixelheight = 1.0 / (height as F);
+            let tlx = (x as F) / (width  as F); //+ ( 1.0 / (2.0*(width  as F)) );
+            let tly = (y as F) / (height as F); //+ ( 1.0 / (2.0*(height as F)) );
             //println!("{},{}",zt1x,zt1y);
-            let res = the_func::the_func(zt1x, zt1y);
+            //let mut results = Vec::<FColor>::new();
+            for division_x in 0..ANTIALIAS {
+                for division_y in 0..ANTIALIAS {
+                    let inner_x = tlx + ( ((division_x+1) as F) * (pixelwidth /((ANTIALIAS+1) as F)) );
+                    let inner_y = tly + ( ((division_y+1) as F) * (pixelheight/((ANTIALIAS+1) as F)) );
+                    results[division_x*ANTIALIAS + division_y] = the_func::the_func(inner_x, inner_y);
+                }
+            }
+            //let res = the_func::the_func(zt1x, zt1y);
+            let res = map_combine_n(&results, |cs| cs.iter().sum::<F>() / cs.len() as F);
             let components_tpl = FSrgbRgb::from(res).into_format::<u8>().into_components();
             let components_slice = vec![components_tpl.0,components_tpl.1,components_tpl.2];
             let start_idx = 3*x + 3*width*y;
             buf[start_idx..start_idx+3].copy_from_slice(&components_slice);
         }
+        println!("Finished row {}", x);
     }
     lodepng::encode24_file("out.png", &buf, width, height).unwrap();
     //println!("{}", generate(&mut rng, 4));

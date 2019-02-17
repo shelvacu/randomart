@@ -1,6 +1,6 @@
 [package]
 name = "rust-randomart"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Shelvacu <shelvacu@gmail.com>"]
 edition = "2018"
 
