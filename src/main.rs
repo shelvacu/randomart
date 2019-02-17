@@ -99,7 +99,7 @@ fn make_array<T:Default>(size:usize) -> Vec<T> {
     return res;
 }
 
-const ANTIALIAS:usize = 16;
+const ANTIALIAS:usize = 1;
 
 fn main() {
     let width = 1000usize;
@@ -112,12 +112,11 @@ fn main() {
     
     for x in 0..width {
         for y in 0..height {
-            let pixelwidth  = 1.0 / (width  as F);
+            let pixelwidth  = 1.0  / (width as F);
             let pixelheight = 1.0 / (height as F);
-            let tlx = (x as F) / (width  as F); //+ ( 1.0 / (2.0*(width  as F)) );
-            let tly = (y as F) / (height as F); //+ ( 1.0 / (2.0*(height as F)) );
-            //println!("{},{}",zt1x,zt1y);
-            //let mut results = Vec::<FColor>::new();
+            //                   /
+            let tlx = (x as F)  / (width as F);
+            let tly = (y as F) / (height as F);
             for division_x in 0..ANTIALIAS {
                 for division_y in 0..ANTIALIAS {
                     let inner_x = tlx + ( ((division_x+1) as F) * (pixelwidth /((ANTIALIAS+1) as F)) );
@@ -132,18 +131,10 @@ fn main() {
             let start_idx = 3*x + 3*width*y;
             buf[start_idx..start_idx+3].copy_from_slice(&components_slice);
         }
-        println!("Finished row {}", x);
+        print!("{},", x+1);
     }
     lodepng::encode24_file("out.png", &buf, width, height).unwrap();
-    //println!("{}", generate(&mut rng, 4));
-    //let a = FColor::linear_rgb(1.0f32,0.0f32,1.0f32);
-    //let b = FColor::linear_rgb(0.0f32,1.0f32,0.0f32);
-    //let avg = average_rgb(a,b);
-    //println!("{:?}",FSrgbRgb::from(avg).into_format::<u8>());
-    //print_type_of(&a);
-    //let () = a;
-    //println!("a = {:?} and b = {:?}", a, b);
-    //println!("avg({:?},{:?}) = {:?}",a,b,average_rgb(a,b));
+    println!();
 }
 
 fn well(x:F) -> F {
@@ -153,24 +144,3 @@ fn well(x:F) -> F {
 fn tent(x:F) -> F {
     F::from(1u8) - F::from(2u8) * x.abs()
 }
-
-/*///dont use. Just use palette::Mix::mix
-fn average_rgb_weighted(a:FColor, b:FColor, weight:F) -> FColor {
-    let w = num::clamp(weight, 0.0, 1.0);
-    let iw = 1.0 - w;
-    let a_rgb:FLinRgb = a.into();
-    let b_rgb:FLinRgb = b.into();
-    let res = FLinRgb::new(
-        a_rgb.red   * w + iw * b_rgb.red,
-        a_rgb.green * w + iw * b_rgb.green,
-        a_rgb.blue  * w + iw * b_rgb.blue,
-    );
-
-    return res.into()
-    
-}
-
-fn average_rgb(a:FColor, b:FColor) -> FColor {
-    return average_rgb_weighted(a,b,0.5)
-}
-*/

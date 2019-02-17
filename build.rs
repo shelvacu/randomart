@@ -59,9 +59,9 @@ fn generate<R: Rng + ?Sized>(rng:&mut R, layers:u8) -> String {
             ),
             2 => format!(
                 "FColor::linear_rgb({},{},{})",
-                rng.gen::<f32>(),
-                rng.gen::<f32>(),
-                rng.gen::<f32>(),
+                rng.gen::<F>(),
+                rng.gen::<F>(),
+                rng.gen::<F>(),
             ),
             _ => panic!("This shouldn't happen"),
         }
@@ -113,7 +113,15 @@ fn generate<R: Rng + ?Sized>(rng:&mut R, layers:u8) -> String {
 
 fn main() {
     let mut hasher = sha2::Sha256::default();
-    let string_seed = String::from("phantom thieves");
+
+    //Get seed from env
+    println!("cargo:rerun-if-env-changed=RANDOMART_SEED");
+    let string_seed = std::env::var("RANDOMART_SEED").expect("Environment var RANDOMART_SEED not set or not valid unicode");
+
+    //Get seed from file
+    //println!("cargo:rerun-if-changed=seed.txt");
+    //let string_seed = std::fs::read_to_string("seed.txt").expect("Could not read seed.txt file");
+    
     eprintln!("Seed: {:?}", string_seed);
     hasher.input(string_seed.into_bytes());
     let hash_res_generic_array = hasher.fixed_result();

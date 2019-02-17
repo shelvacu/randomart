@@ -340,7 +340,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "rust-randomart"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "lodepng 2.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",

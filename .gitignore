@@ -2,3 +2,4 @@
 **/*.rs.bk
 out.png
 src/the_func.rs
+seed.txt
