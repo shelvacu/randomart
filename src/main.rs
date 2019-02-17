@@ -99,11 +99,20 @@ fn make_array<T:Default>(size:usize) -> Vec<T> {
     return res;
 }
 
+// 0: invalid
+// 1: disable anti-aliasing
+// 2: mild anti-aliasing
+// ...
+// 16: crazy amounts of anti-aliasing. Will take approx 256 times as long as no antialiasing
+// you can go further if you feeling really crazy. I'm not sure what the limit is.
 const ANTIALIAS:usize = 1;
 
 fn main() {
+    //change these to whatever you want
     let width = 1000usize;
     let height = 1000usize;
+
+    //do not change this without changing pretty much the entire codebase
     let byte_depth = 3usize;
     let mut buf = make_array::<u8>(width*height*byte_depth);
 
